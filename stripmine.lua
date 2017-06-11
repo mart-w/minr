@@ -157,6 +157,19 @@ local function get_block_drop(material)
     return material -- Dropped item equals mined material
 end
 
+local function return_to_ground(height)
+    --[[
+    Lets the turtle return to the ground from a given height.
+
+    @param height   Height the turtle should return to the ground from.
+    --]]
+
+    while height > 1 do
+        turtle.down()
+        height = height - 1
+    end
+end
+
 local function mine_block(direction)
     --[[
     Mines one block and stores it in the turtle's inventory. Checks for
@@ -231,13 +244,85 @@ local function mine_row()
 
     if successful then mine_block() end -- Mine topmost block
 
-    -- Return to the ground
+    return_to_ground(height)
+
+    return successful
+end
+
+local function scan_block()
+    --[[
+    Scans the block in front of the turtle and mines it if it isn't part of
+    IGNORED_MATERIALS
+
+    @return     False if mine_block() fails, otherwise true.
+    --]]
+    is_block, block = turtle.inspect() -- Scan block in front of the turtle
+
+    if is_block then
+        if not is_ignored_material(block.name) then
+            if not mine_block() then
+                return false
+            end
+        end
+    end
+
+    return true
+end
+
+local function scan_walls()
+    --[[
+    Scans the walls left and right of the turtle for blocks not in
+    IGNORED_MATERIALS and mines them.
+
+    @return     False if scan_block() fails at any time, e.g. the inventory is
+                full, otherwise true.
+    --]]
+    local height = 1 -- ground level
+
+    turtle.turnLeft()
+
+    -- way up
+    while height < tunnel_height do
+        if not scan_block() then
+            turtle.turnRight()
+            return_to_ground(height)
+            return false -- Failed attempt at mining a block
+        end
+
+        turtle.up()
+        height = height + 1
+    end
+
+    -- topmost left block
+    if not scan_block() then
+        turtle.turnRight()
+        return_to_ground(height)
+        return false -- Failed attempt at mining a block
+    end
+
+    turtle.turnRight()
+    turtle.turnRight()
+
+    -- way back down
     while height > 1 do
+        if not scan_block() then
+            turtle.turnLeft()
+            return_to_ground(height)
+            return false -- Failed attempt at mining a block
+        end
+
         turtle.down()
         height = height - 1
     end
 
-    return successful
+    -- bottommost right block
+    if not scan_block() then
+        turtle.turnLeft()
+        return false -- Failed attempt at mining a block
+    end
+
+    turtle.turnLeft()
+    return true -- Scanning successful
 end
 
 local function greet()
