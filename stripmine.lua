@@ -249,18 +249,33 @@ local function mine_row()
     return successful
 end
 
-local function scan_block()
+local function scan_block(direction)
     --[[
     Scans the block in front of the turtle and mines it if it isn't part of
     IGNORED_MATERIALS
 
-    @return     False if mine_block() fails, otherwise true.
+    @param direction    [optional] Either "up" or "down", changes the direction
+                        in which the turtle should scan and dig.
+
+    @return             False if mine_block() fails, otherwise true.
     --]]
-    is_block, block = turtle.inspect() -- Scan block in front of the turtle
+
+    -- Choose correct inspect function depending on the given direction
+    local inspect = nil
+
+    if direction == "up" then
+        inspect = turtle.inspectUp
+    elseif direction == "down" then
+        inspect = turtle.inspectDown
+    else
+        inspect = turtle.inspect
+    end
+
+    is_block, block = inspect() -- Scan block in front of the turtle
 
     if is_block then
         if not is_ignored_material(block.name) then
-            if not mine_block() then
+            if not mine_block(direction) then
                 return false
             end
         end
@@ -278,6 +293,11 @@ local function scan_walls()
                 full, otherwise true.
     --]]
     local height = 1 -- ground level
+
+    -- floor
+    if not scan_block("down") then
+        return false -- Failed attempt at mining a block
+    end
 
     turtle.turnLeft()
 
@@ -301,6 +321,13 @@ local function scan_walls()
     end
 
     turtle.turnRight()
+
+    -- ceiling
+    if not scan_block("up") then
+        return_to_ground(height)
+        return false -- Failed attempt at mining a block
+    end
+
     turtle.turnRight()
 
     -- way back down
