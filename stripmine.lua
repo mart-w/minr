@@ -418,7 +418,7 @@ local function mine_strip(scanning_enabled)
         end
     end
 
-    go_back_in_strip()
+    go_back_in_strip(position)
 end
 
 local function greet()
