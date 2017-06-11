@@ -174,7 +174,8 @@ local function mine_block(direction)
     --[[
     Mines one block and stores it in the turtle's inventory. Checks for
     inventory space first, dropping items from the IGNORED_MATERIALS list if
-    it is full.
+    it is full. If the inventory is full but the block in question is on the
+    IGNORED_MATERIALS list, it is mined without being picked up.
 
     @param direction    [optional] Either "up" or "down", used to mine above or
                         below the turtle.
@@ -211,6 +212,10 @@ local function mine_block(direction)
         dig()
         return true -- Return true as the block has been mined
     else
+        if is_ignored_material(block.name) then
+            dig()
+            return true -- Mined block was an ignored block, so it is omitted
+        end
         for i = 1, 16 do
             if is_ignored_material(turtle.getItemDetail(i).name) then
                 turtle.select(i)
