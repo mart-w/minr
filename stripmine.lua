@@ -417,6 +417,8 @@ local function mine_strip(scanning_enabled)
             break
         end
     end
+
+    go_back_in_strip()
 end
 
 local function greet()
@@ -443,3 +445,4 @@ end
 
 -- Main body.
 greet()
+mine_strip()
