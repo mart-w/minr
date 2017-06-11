@@ -134,6 +134,7 @@ local function back()
         turtle.turnRight()
 
         return successful
+    end
 end
 
 local function get_possible_slot(item, quantity)
