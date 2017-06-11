@@ -37,6 +37,14 @@ IGNORED_MATERIALS = {
     "minecraft:cobblestone"
 }
 
+-- Defines materials which drop items different from the block they originate
+-- from.
+BLOCK_DROPS = {
+    ["minecraft:stone"] = "minecraft:cobblestone",
+    ["minecraft:redstone_ore"] = "minecraft:redstone",
+    ["minecraft:diamond_ore"] = "minecraft:diamond"
+}
+
 -- Variables.
 local tunnel_depth = 0
 local tunnel_height = 0
@@ -79,6 +87,127 @@ local function prompt_user(prompt, default)
     end
 
     return output
+end
+
+local function get_possible_slot(item, quantity)
+    --[[
+    Checks if the inventory offers space for a given item (and quantity).
+
+    @param item         Item identifier of the item to be stored.
+    @param quantity     [optional] Amount of items to be stored. If not given, 1
+                        will be assumed.
+
+    @return             Number of the first slot offering space for the desired
+                        item and quantity, nil if there is none.
+    --]]
+
+    -- Scan inventory and compare its contents to the given item and quantity.
+    local slot_item = nil
+
+    for i = 1, 16 do
+        slot_item = turtle.getItemDetail(i)
+        if not slot_item then
+            return i -- empty slot_item
+        elseif slot_item.name == item then -- existing item stack found
+            -- check for space in the stack
+            local needed_space = 1
+            if quantity then needed_space = quantity end
+
+            if turtle.getItemSpace(i) >= needed_space then
+                return i -- item can be stored in found stack
+            end
+        end
+    end
+
+    return nil -- no slot found
+end
+
+local function is_ignored_material(material)
+    --[[
+    Returns if a given material is one of the ignored materials defined in
+    IGNORED_MATERIALS
+
+    @param material     Identifier of the material to be looked up.
+
+    @return             True if the material is ignored, false if not.
+    --]]
+
+    for index, ignored_material in pairs(IGNORED_MATERIALS) do
+        if ignored_material == material then return true end
+    end
+
+    return false
+end
+
+local function get_block_drop(material)
+    --[[
+    Returns the identifier of the item a given block drops when mined.
+
+    @param block    Identifier of the block to be looked up
+
+    @return         Identifier of the dropped item
+    --]]
+
+    for block, drop in pairs(BLOCK_DROPS) do
+        if material == block then
+            return drop
+        end
+    end
+
+    return material -- Dropped item equals mined material
+end
+
+local function mine_block(direction)
+    --[[
+    Mines one block and stores it in the turtle's inventory. Checks for
+    inventory space first, dropping items from the IGNORED_MATERIALS list if
+    it is full.
+
+    @param direction    [optional] Either "up" or "down", used to mine above or
+                        below the turtle.
+
+    @return             False if inventory is full and cannot be emptied,
+                        otherwise true.
+    --]]
+
+    -- Store respective inspect and dig functions in a local variable according
+    -- to direction parameter
+    local inspect = nil
+    local dig = nil
+
+    if direction == "up" then
+        inspect = turtle.inspectUp
+        dig = turtle.digUp
+    elseif direction == "down" then
+        inspect = turtle.inspectDown
+        dig = turtle.digDown
+    else
+        inspect = turtle.inspect
+        dig = turtle.dig
+    end
+
+    -- Identify block to be mined
+    is_block, block = inspect()
+
+    -- Return true if there is no block to be mined
+    if not is_block then return true end
+
+    -- Check for inventory space and mine the block. If there is no space, try
+    -- to drop one of the ignored materials and then mine the block.
+    if get_possible_slot(get_block_drop(block.name)) then
+        dig()
+        return true -- Return true as the block has been mined
+    else
+        for i = 1, 16 do
+            if is_ignored_material(turtle.getItemDetail(i).name) then
+                turtle.select(i)
+                turtle.drop()
+                dig()
+                return true -- Return true as the block has been mined
+            end
+        end
+        return false -- No suitable slot could be found
+    end
 end
 
 local function init()
