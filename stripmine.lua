@@ -286,8 +286,8 @@ end
 
 local function scan_walls()
     --[[
-    Scans the walls left and right of the turtle for blocks not in
-    IGNORED_MATERIALS and mines them.
+    Scans the walls left and right of the turtle as well as the floor and
+    ceiling for blocks not in IGNORED_MATERIALS and mines them.
 
     @return     False if scan_block() fails at any time, e.g. the inventory is
                 full, otherwise true.
