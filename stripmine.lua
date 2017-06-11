@@ -89,6 +89,53 @@ local function prompt_user(prompt, default)
     return output
 end
 
+local function forward()
+    --[[
+    Moves the turtle one block forward. Automatically clears sand and gravel.
+
+    @return     True if successful, false if the turtle cannot move.
+    --]]
+    if turtle.forward() then
+        return true
+    else
+        is_block, block = turtle.inspect()
+
+        if block.name == "minecraft:gravel" or block.name == "minecraft:sand" then
+            while block.name == "minecraft:gravel" or block.name == "minecraft:sand" do
+                turtle.dig()
+                is_block, block = turtle.inspect()
+            end
+            if forward() then return true end
+        else
+            return false -- Turtle got stuck
+        end
+    end
+end
+
+local function back()
+    --[[
+    Moves the turtle on block backwards. Automatically clears sand and gravel.
+
+    @return     True if successful, false if the turtle cannot move.
+    --]]
+    local successful = true
+
+    if turtle.back() then
+        return true
+    else
+        turtle.turnRight()
+        turtle.turnRight()
+
+        if not forward() then
+            successful = false
+        end
+
+        turtle.turnRight()
+        turtle.turnRight()
+
+        return successful
+end
+
 local function get_possible_slot(item, quantity)
     --[[
     Checks if the inventory offers space for a given item (and quantity).
@@ -367,12 +414,12 @@ local function go_to_position_in_strip(position, destination)
 
     if destination > position then
         while destination > position do
-            turtle.forward()
+            forward()
             position = position + 1
         end
     else
         while destination < position do
-            turtle.back()
+            back()
             position = position - 1
         end
     end
@@ -409,7 +456,7 @@ local function mine_strip(scanning_enabled)
             break
         end
 
-        if not turtle.forward() then
+        if not forward() then
             go_back_in_strip(position) -- path is blocked
             position = 0
             break
