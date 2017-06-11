@@ -48,6 +48,7 @@ BLOCK_DROPS = {
 -- Variables.
 local tunnel_depth = 0
 local tunnel_height = 0
+local automatic_refuel = true
 
 -- Functions.
 local function prompt_user(prompt, default)
@@ -89,12 +90,46 @@ local function prompt_user(prompt, default)
     return output
 end
 
+local function estimate_needed_fuel()
+    --[[
+    Estimates and returns the amount of fuel needed to dig the desired mines.
+
+    @return     Estimated fuel consumption.
+    --]]
+    local estimate = 1
+
+    estimate = estimate * tunnel_depth -- fuel needed to cover the length of the tunnel
+    estimate = estimate * tunnel_height * 2 -- the turtle needs to go both up and down every row
+    estimate = estimate + tunnel_depth -- way back
+    estimate = estimate * 1.05 -- 5 per cent tolerance
+
+    return estimate
+end
+
+local function refuel()
+    --[[
+    Looks for burnable items inside the turtle's inventory and uses one of them
+    as fuel.
+
+    @return     True if refuel was successful, false if not.
+    --]]
+
+    for i = 1, 16 do
+        turtle.select(i)
+        if turtle.refuel(1) then
+            return true
+        end
+    end
+    return false -- no fuel found
+end
+
 local function forward()
     --[[
     Moves the turtle one block forward. Automatically clears sand and gravel.
 
     @return     True if successful, false if the turtle cannot move.
     --]]
+
     if turtle.forward() then
         return true
     else
@@ -451,6 +486,11 @@ local function mine_strip(scanning_enabled)
     local position = 0
 
     while position < tunnel_depth do
+        -- check for fuel
+        while automatic_refuel and turtle.getFuelLevel() < 50 do
+            refuel()
+        end
+
         if not mine_row() then
             go_back_in_strip(position) -- inventory is full
             position = 0
@@ -476,7 +516,7 @@ end
 
 local function greet()
     --[[
-    Greets the user and sets up the global variables.
+    Greets the user.
     --]]
 
     -- Clear terminal.
@@ -488,14 +528,38 @@ local function greet()
 Welcome to Minr, the intelligent
 strip mining program for ComputerCraft!
 ---------------------------------------]])
-
-    -- Fetch information from user
-    tunnel_depth = tonumber(prompt_user("Please enter the desired tunnel depth",
-                                        DEFAULT_TUNNEL_DEPTH))
-    tunnel_height = tonumber(prompt_user("Please enter the desired tunnel height",
-                                        DEFAULT_TUNNEL_HEIGHT))
 end
 
 -- Main body.
 greet()
+
+-- Fetch information from user
+tunnel_depth = tonumber(prompt_user("Please enter the desired tunnel depth",
+                                    DEFAULT_TUNNEL_DEPTH))
+tunnel_height = tonumber(prompt_user("Please enter the desired tunnel height",
+                                    DEFAULT_TUNNEL_HEIGHT))
+
+
+local fuel = turtle.getFuelLevel()
+local estimated_fuel_need = estimate_needed_fuel()
+local fuel_okay = false
+
+if fuel == "unlimited" then -- fuel need disabled
+    fuel_okay = true
+else -- fuel needed
+    if fuel > estimated_fuel_need then
+        fuel_okay = true
+    else
+        local fuel_answer = prompt_user("The turtle might not have enough fuel for that! Continue?", "N")
+        if fuel_answer:lower() == "yes" or fuel_answer:lower() == "y" then
+            fuel_okay = true
+        end
+    end
+
+    local refuel_answer = prompt_user("Automatically refuel from gathered resources?", "Y")
+    if refuel_answer:lower() == "no" or refuel_answer:lower() == "n" then
+        automatic_refuel = false
+    end
+end
+
 mine_strip()
