@@ -43,7 +43,8 @@ BLOCK_DROPS = {
     ["minecraft:stone"] = "minecraft:cobblestone",
     ["minecraft:redstone_ore"] = "minecraft:redstone",
     ["minecraft:diamond_ore"] = "minecraft:diamond",
-    ["minecraft:lapis_ore"] = "minecraft:dye"
+    ["minecraft:lapis_ore"] = "minecraft:dye",
+    ["minecraft:coal_ore"] = "minecraft:coal"
 }
 
 -- Variables.
