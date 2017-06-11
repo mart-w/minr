@@ -210,7 +210,37 @@ local function mine_block(direction)
     end
 end
 
-local function init()
+local function mine_row()
+    --[[
+    Mines a vertical row of blocks before the turtle. The height of the column
+    is defined in tunnel_height.
+
+    @return     True if all blocks were mined successfully, otherwise false.
+    --]]
+    local height = 1 -- ground level
+    local successful = true
+
+    while height < tunnel_height do
+        if not mine_block() then
+            successful = false
+            break -- Mining unsuccessful, do not continue
+        end
+        turtle.up()
+        height = height + 1
+    end
+
+    if successful then mine_block() end -- Mine topmost block
+
+    -- Return to the ground
+    while height > 1 do
+        turtle.down()
+        height = height - 1
+    end
+
+    return successful
+end
+
+local function greet()
     --[[
     Greets the user and sets up the global variables.
     --]]
@@ -233,4 +263,4 @@ strip mining program for ComputerCraft!
 end
 
 -- Main body.
-init()
+greet()
