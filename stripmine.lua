@@ -352,6 +352,73 @@ local function scan_walls()
     return true -- Scanning successful
 end
 
+local function go_to_position_in_strip(position, destination)
+    --[[
+    Moves to the given position inside a mined strip.
+
+    @param position     The position the turtle is at inside the strip.
+    @param destination  The position the turtle is supposed to go to
+    --]]
+
+    if destination > position then
+        while destination > position do
+            turtle.forward()
+            position = position + 1
+        end
+    else
+        while destination < position do
+            turtle.back()
+            position = position - 1
+        end
+    end
+end
+
+local function go_back_in_strip(position)
+    --[[
+    Moves back to the beginning of a mined strip.
+
+    @param position     The position the turtle is at inside the strip.
+    --]]
+
+    go_to_position_in_strip(position, 0)
+end
+
+local function mine_strip(scanning_enabled)
+    --[[
+    Digs a tunnel with lenght tunnel_depth and height tunnel_height. If not
+    told otherwise, scans the walls, floor and ceiling for materials not part of
+    IGNORED_MATERIALS as well. If the path is blocked or the inventory is full,
+    it will return to the starting position.
+
+    @param scanning_enabled     [optional] If set to false, the turtle will not
+                                scan the walls, floor and ceiling. If not set,
+                                it will be assumed to be true.
+    --]]
+
+    local position = 0
+
+    while position < tunnel_depth do
+        if not mine_row() then
+            go_back_in_strip(position) -- inventory is full
+            position = 0
+            break
+        end
+
+        if not turtle.forward() then
+            go_back_in_strip(position) -- path is blocked
+            position = 0
+            break
+        end
+        position = position + 1
+
+        if not scan_walls() then
+            go_back_in_strip(position) -- inventory is full
+            position = 0
+            break
+        end
+    end
+end
+
 local function greet()
     --[[
     Greets the user and sets up the global variables.
